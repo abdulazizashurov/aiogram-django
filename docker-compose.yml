@@ -2,23 +2,20 @@ version: '3'
 
 services:
   db:
-    container_name: database
-    image: sameersbn/postgresql:10-2
+    image: postgres:13-alpine
     env_file:
-      - ".env.db"
+      - .env.db
     restart: always
     ports:
       - "5432:5432"
-    networks:
-      - botnet
     volumes:
-      - ./postgresql:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data/
   redis:
     image: redis
     volumes:
       - ./redis.conf:/usr/local/etc/redis/redis.conf
     ports:
-      - "6379"
+      - "6379:6379"
   web:
     build:
       dockerfile: Dockerfile
@@ -35,8 +32,8 @@ services:
       - db
   nginx:
     build:
-      dockerfile: Dockerfile
       context: ./nginx
+      dockerfile: Dockerfile
     ports:
       - "80:80"
     volumes:
@@ -53,15 +50,11 @@ services:
         - .:/src
       restart: always
       env_file:
-        - ".env"
+        - .env
       depends_on:
         - db
         - web
         - redis
-
-networks:
-  botnet:
-    driver: bridge
 
 volumes:
   static_volume:
