@@ -1,0 +1,69 @@
+version: '3'
+
+services:
+  db:
+    container_name: database
+    image: sameersbn/postgresql:10-2
+    env_file:
+      - ".env.db"
+    restart: always
+    ports:
+      - "5432:5432"
+    networks:
+      - botnet
+    volumes:
+      - ./postgresql:/var/lib/postgresql
+  redis:
+    image: redis
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379"
+  web:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    command: gunicorn admin.wsgi:application --bind 0.0.0.0:8000
+    expose:
+      - 8000
+    volumes:
+      - static_volume:/home/app/web/static
+      - media_volume:/home/app/web/media
+    env_file:
+      - .env
+    depends_on:
+      - db
+  nginx:
+    build:
+      dockerfile: Dockerfile
+      context: ./nginx
+    ports:
+      - "80:80"
+    volumes:
+      - static_volume:/home/app/web/static
+      - media_volume:/home/app/web/media
+    depends_on:
+      - web
+  tgbot:
+      container_name: bot
+      build:
+        context: .
+      command: python app.py
+      volumes:
+        - .:/src
+      restart: always
+      env_file:
+        - ".env"
+      depends_on:
+        - db
+        - web
+        - redis
+
+networks:
+  botnet:
+    driver: bridge
+
+volumes:
+  static_volume:
+  media_volume:
+  postgres_data:
